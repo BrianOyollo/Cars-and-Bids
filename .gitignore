@@ -1,4 +1,8 @@
 /env
 /geckodriver.log
 # /urls.json
+/test.json
+/urls copy.json
+/new_data.json
+/new_data.txt
 /trial.py

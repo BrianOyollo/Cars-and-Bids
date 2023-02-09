@@ -30,14 +30,17 @@ def get_listing_url():
             title = auction_url.find('a').get('title')
             url_dict[title] = f"https://carsandbids.com/{url}"
             
+            
+            
+            
         time.sleep(10)
         print("Done!")
         
     # print(url_list)
+        driver.close()
     return url_dict
         
 # get_listing_url()
-
 def output(url_dict):
     with open('urls.json', 'w') as obj:
         json.dump(url_dict, obj, indent=4)
