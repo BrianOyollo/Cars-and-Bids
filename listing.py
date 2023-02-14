@@ -1,71 +1,38 @@
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import time
 import json
 
 
 
-url = "https://carsandbids.com/auctions/rxM1e8V6/2004-lamborghini-gallardo-coupe"
-
-def get_listing_details(url):
-    options = Options()
-    options.headless = True
-    driver = webdriver.Firefox(options=options)
-    
-    
-    driver.get(url)
-    time.sleep(10)
-    page = driver.page_source
-    
-    soup = BeautifulSoup(page, 'html.parser')
-    # title
-    div_title = soup.find('div', class_="auction-title")
-    title = div_title.find('h1').get_text()
-    
-    # subtitle
-    div_subtitle = soup.find('div', class_="d-md-flex justify-content-between flex-wrap")
-    subtitle = div_subtitle.find('h2').get_text()
-    
-    # quick facts
-    quick_facts = soup.find('div', class_='quick-facts')
-    quick_facts_dict = {}
-    for dl in quick_facts.find_all('dl'):
-        dts = dl.find_all('dt')
-        dds = dl.find_all('dd')
+class CarScrapper:
+    def __init__(self,url):
+        self.url = url
+        options = Options()
+        options.headless = True
+        self.driver = webdriver.Firefox(options=options) 
         
-        for dt,dd in zip(dts,dds):
-            quick_facts_dict[dt.get_text()] = dd.get_text()
-            # print(f"{dt.get_text()}: {dd.get_text()}")
     
-    # Doug's take
-    dougs_take = soup.select_one("div.dougs-take div.detail-body p").get_text()
-    
-    # highlights
-    highlight_1 = soup.select_one("div.detail-highlights div.detail-body p").get_text()
-    highlights = soup.select("div.detail-highlights div.detail-body ul li")
-    highlight_list=[]
-    for li in highlights:
-        highlight_list.append(highlight_1)
-        highlight_list.append(li.get_text())
+    def get_live_auction_urls(self): 
+        start_time = time.time()
+        
+        self.driver.get(self.url)
+        time.sleep(10)
+        # vehicle_urls = self.driver.find_elements(By.XPATH, "//div[@class='auction-title']/a")
+        vehicle_urls = WebDriverWait(self.driver, 20).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='auction-title']/a")))
+        urls = [url.get_attribute('href') for url in vehicle_urls] # might contain duplicates. 
+        final_live_auction_urls = list(set(urls)) # convert to set to remove duplicates if any
+        
+        elapsed_time = time.time() - start_time
+        
+        print(final_live_auction_urls)
+        print(len(final_live_auction_urls))
+        print(f"{elapsed_time} seconds")
 
-    # equipment
-    equipment = [li.get_text() for li in soup.select("div.detail-equipment div.detail-body ul li")]
-    print(equipment)
-    
-    # modifiations
-    modifications = [li.get_text() for li in soup.select("div.detail-modifications div.detail-body ul li")]
-    
-    # flaws
-    known_flaws = [li.get_text() for li in soup.select("div.detail-known_flaws div.detail-body ul li")]
-    
-    # service history
-    recent_service_history = [li.get_text() for li in soup.select("div.detail-known_flaws div.detail-body ul li")]
-    
-    
-    
-    
-    
-    
-    driver.quit()
-get_listing_details(url)
+scraper = CarScrapper("https://carsandbids.com/")
+scraper.get_live_auction_urls()
+scraper.driver.quit()
