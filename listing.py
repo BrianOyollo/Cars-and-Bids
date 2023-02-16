@@ -58,14 +58,14 @@ class CarScrapper:
         start_time = time.time()
             
         final_past_auction_urls = []
-        page_num=224
-        while True:  
+        page_num=2
+        while True and page_num < 5:  
             try:
                 self.driver.get(f"https://carsandbids.com/past-auctions/?page={page_num}")
                 print(f"Scrapping page {page_num}...")
                 past_auctions_urls = WebDriverWait(self.driver,20).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='auction-title']/a")))
-                page_urls = [url.get_attribute('href') for url in past_auctions_urls] # might contain duplicates. 
-                for final_url in list(set(page_urls)):  # convert to set to remove duplicates
+                page_urls = [url.get_attribute('href') for url in past_auctions_urls]
+                for final_url in page_urls:
                     final_past_auction_urls.append(final_url)
                    
                 next_page_btn = WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.XPATH, "//li[@class='arrow next']/button[@class='btn rb btn-link']")))
@@ -83,13 +83,52 @@ class CarScrapper:
         
 
     def dump_past_urls(self,past_urls):
-        with open('urls.txt', 'w') as obj:
+        with open('auction_urls.txt', 'w') as obj:
             print(f"Writing urls to file...")
-            obj.write(past_urls)
+            for url in past_urls:
+                obj.writelines(f"{url}\n")
             
+    def update_past_auction_urls(self):
+        with open('auction_urls.txt', 'r') as obj:
+            print("Reading previous URLs...")
+            old_urls = obj.readlines()
+
+        daily_urls = [] # temporary list to hold new urls 
+        
+        page=1
+        while True and page <= 2:
+            try:
+                self.driver.get(f"https://carsandbids.com/past-auctions/?page={page}")
+                print(f"scraping page {page}...")
+                vehicle_urls = WebDriverWait(self.driver, 20).until(
+                        EC.presence_of_all_elements_located((By.XPATH, "//div[@class='auction-title']/a")))
+                
+                urls = [url.get_attribute('href') for url in vehicle_urls]
+                for final_url in urls:
+                    daily_urls.append(final_url)
+                    
+                next_page_btn = WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.XPATH, "//li[@class='arrow next']/button[@class='btn rb btn-link']")))
+                
+                time.sleep(5)
+                self.driver.execute_script("arguments[0].click();", next_page_btn)
+                page+=1
+            except Exception as e:
+                print(e)
+                break
             
+        print('Checking duplicate URLs...')
+        for index, url in enumerate(daily_urls):
+            if url not in old_urls:
+                old_urls.insert(index,url)        
+
+        with open('auction_urls.txt','w') as obj:
+            print('Updating URLs...')
+            for url in daily_urls:
+                obj.writelines(f"{url}\n")
+        
+     
             
 scrapper = CarScrapper("https://carsandbids.com/")
-past_urls = scrapper.get_past_auctions_urls()[0]
-scrapper.dump_past_urls(str(past_urls))
+# scrapper.dump_past_urls(scrapper.get_past_auctions_urls()[0])
+scrapper.update_past_auction_urls()
 scrapper.driver.quit()
