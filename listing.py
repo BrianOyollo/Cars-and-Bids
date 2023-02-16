@@ -58,8 +58,8 @@ class CarScrapper:
         start_time = time.time()
             
         final_past_auction_urls = []
-        page_num=2
-        while True and page_num < 5:  
+        page_num=1
+        while True:  
             try:
                 self.driver.get(f"https://carsandbids.com/past-auctions/?page={page_num}")
                 print(f"Scrapping page {page_num}...")
