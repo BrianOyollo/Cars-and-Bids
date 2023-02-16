@@ -58,11 +58,11 @@ class CarScrapper:
         start_time = time.time()
             
         final_past_auction_urls = []
-        page_num=1
+        page_num=224
         while True:  
             try:
                 self.driver.get(f"https://carsandbids.com/past-auctions/?page={page_num}")
-                print(f"Scrapping page {page_num} ...")
+                print(f"Scrapping page {page_num}...")
                 past_auctions_urls = WebDriverWait(self.driver,20).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='auction-title']/a")))
                 page_urls = [url.get_attribute('href') for url in past_auctions_urls] # might contain duplicates. 
                 for final_url in list(set(page_urls)):  # convert to set to remove duplicates
@@ -78,22 +78,18 @@ class CarScrapper:
     
         elapsed_time = time.time()- start_time
         
-        # print(final_past_auction_urls)
-        # print(f"{len(final_past_auction_urls)} urls scrapped in {elapsed_time}")
         
         return final_past_auction_urls, len(final_past_auction_urls), elapsed_time
         
 
-
-
-
-
-
-
-
-
-
-
-scraper = CarScrapper("https://carsandbids.com/")
-scraper.get_past_auctions_urls()
-scraper.driver.quit()
+    def dump_past_urls(self,past_urls):
+        with open('urls.txt', 'w') as obj:
+            print(f"Writing urls to file...")
+            obj.write(past_urls)
+            
+            
+            
+scrapper = CarScrapper("https://carsandbids.com/")
+past_urls = scrapper.get_past_auctions_urls()[0]
+scrapper.dump_past_urls(str(past_urls))
+scrapper.driver.quit()
