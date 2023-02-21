@@ -77,11 +77,12 @@ class CarScrapper:
                 break
     
         elapsed_time = time.time()- start_time
+        print(f"{page_num} pages scrapped in {round(elapsed_time,2)}")
         
         
         with open('auction_urls.txt', 'w') as obj:
             print(f"Writing urls to file...")
-            for url in past_auctions_urls:
+            for url in final_past_auction_urls:
                 obj.writelines(f"{url}\n")
                 
             
@@ -255,8 +256,31 @@ class CarScrapper:
                 auction_date = WebDriverWait(driver,20).until(EC.presence_of_element_located((By.XPATH, "//ul[@class='stats']/li/div[@class='td end-icon']"))).text
                 bid_count = WebDriverWait(driver,20).until(EC.presence_of_element_located((By.XPATH, "//ul[@class='stats']/li/div[@class='td bid-icon']"))).text
                 view_count = WebDriverWait(driver,20).until(EC.presence_of_element_located((By.XPATH, "//ul[@class='stats']/li/div[@class='td views-icon']"))).text
-                bids = WebDriverWait(driver, 20).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='content']/dl[@class='placed-bid ']/dd[@class='bid-value']")))
-                bid_list = [bid.text for bid in bids]
+                # scroll_pause_time = 5 # You can set your own pause time. My laptop is a bit slow so I use 1 sec
+                # screen_height = driver.execute_script("return window.screen.height;")   # get the screen height of the web
+                # i = 1
+
+                while True:
+                    try:
+                    # scroll one screen height each time
+                    # driver.execute_script("window.scrollTo(0, {screen_height}*{i});".format(screen_height=screen_height, i=i))  
+                    # i += 1
+                    # time.sleep(scroll_pause_time)
+                    # # update scroll height each time after scrolled, as the scroll height can change after we scrolled the page
+                    # scroll_height = driver.execute_script("return document.body.scrollHeight;")
+                    # # Break the loop when the height we need to scroll to is larger than the total scroll height
+                        load_more = WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, "//li[@class='load-more']/button[@class='btn btn-secondary btn-block']")))
+                        driver.execute_script("arguments[0].click();", load_more)
+                        time.sleep(5)
+                    except Exception as e:
+                        break
+                    # if (screen_height) * i > scroll_height:
+                    #     break 
+                    
+                    
+                    
+                bids = WebDriverWait(driver, 5).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='content']/dl[@class='placed-bid ']/dd[@class='bid-value']")))
+                bid_list=[bid.text for bid in bids]
             except Exception as e:
                 print("Error getting auction's stats")
                 reserve_status = None
@@ -286,7 +310,7 @@ class CarScrapper:
         
         auction_details = {}
         
-        for url in urls[:5]:
+        for url in urls[6:10]:
             print(f"Scrapping {url}")
         
             driver = load_auction_page(url.strip('\n'))
@@ -319,11 +343,13 @@ class CarScrapper:
             }
             
             
-        with open('auction_details.json', 'w') as obj:
+        with open('auction_details.json', 'a') as obj:
             json.dump(auction_details, obj, indent=4)
             
 scrapper = CarScrapper("https://carsandbids.com/")
 
-scrapper.update_past_auction_urls()
+# scrapper.get_past_auctions_urls()
+# scrapper.update_past_auction_urls()
+scrapper.get_auction_details()
 
 scrapper.driver.quit()
