@@ -5,6 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import time
+from datetime import datetime
 import json
 
 
@@ -13,7 +14,7 @@ class CarScrapper:
     def __init__(self,url):
         self.url = url
         options = Options()
-        options.headless = True
+        options.add_argument('--headless')
         self.driver = webdriver.Firefox(options=options) 
         
     
@@ -87,11 +88,11 @@ class CarScrapper:
                 
             
     def update_past_auction_urls(self):
-        with open('auction_urls.txt', 'r') as obj:
+        with open('auction_urls_copy.txt', 'r') as obj:
             print("Reading previous URLs...")
             old_urls = obj.readlines()
 
-        daily_urls = [] # temporary list to hold new urls 
+        daily_urls = []
         
         page=1
         while True and page <= 2:
@@ -113,16 +114,25 @@ class CarScrapper:
             except Exception as e:
                 print(e)
                 break
+        
+        
+        with open(f'daily urls/{datetime.today().date()}.txt','w') as file:
+            print("Saving daily auction urls...")
+            for url in daily_urls:
+                if f"{url}\n" not in old_urls:
+                    file.writelines(f"{url}\n")
             
-        print('Checking duplicate URLs...')
+            
         for index, url in enumerate(daily_urls):
             if url not in old_urls:
-                old_urls.insert(index,url.strip('\n'))        
+                old_urls.insert(index,url.strip())        
 
-        with open('auction_urls.txt','w') as obj:
+        with open('auction_urls_copy.txt','w') as obj:
             print('Updating URLs...')
             for url in old_urls:
                 obj.writelines(f"{url.strip()}\n")
+                
+        
         
     def scrap_auction_details(self,urls):
                 
@@ -351,7 +361,7 @@ class CarScrapper:
     def scrap_dump_in_chunks(self,chunk_size):
         auction_urls = self.read_auction_urls()
         
-        for index in range(0, len(auction_urls[:5]),chunk_size):
+        for index in range(0, len(auction_urls),chunk_size):
             batch_urls = auction_urls[index:index+chunk_size]
             batch_name = f"{index+1}-{(index+chunk_size)}"
             auctions = self.scrap_auction_details(batch_urls)        
@@ -361,7 +371,7 @@ class CarScrapper:
 scrapper = CarScrapper("https://carsandbids.com/")
 
 # scrapper.get_past_auctions_urls()
-# scrapper.update_past_auction_urls()
-scrapper.scrap_dump_in_chunks(3)
+scrapper.update_past_auction_urls()
+# scrapper.scrap_dump_in_chunks(1000)
 
 scrapper.driver.quit()
