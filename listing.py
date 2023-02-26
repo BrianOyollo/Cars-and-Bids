@@ -5,18 +5,19 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import time
+from datetime import datetime
 import json
 
 
 
-class CarScrapper:
+class CarScraper:
     def __init__(self,url):
         self.url = url
         options = Options()
-        options.headless = True
+        options.add_argument('--headless')
         self.driver = webdriver.Firefox(options=options) 
         
-    
+    # get urls of live auctions
     def get_live_auction_urls(self): 
         """
         This method fetches the auction URLs of all the ongoing auctions on the "https://carsandbids.com" website. 
@@ -41,8 +42,9 @@ class CarScrapper:
         
         return final_live_auction_urls,len(final_live_auction_urls), elapsed_time, 
 
-
+    # get urls of all auctions (from Nov. 2020)
     def get_past_auctions_urls(self):
+        
         """
         Navigates to the "Past Auctions" page on carsandbids.com and returns a list of URLs for each past auction.
     
@@ -62,7 +64,7 @@ class CarScrapper:
         while True:  
             try:
                 self.driver.get(f"https://carsandbids.com/past-auctions/?page={page_num}")
-                print(f"Scrapping page {page_num}...")
+                print(f"scraping page {page_num}...")
                 past_auctions_urls = WebDriverWait(self.driver,20).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='auction-title']/a")))
                 page_urls = [url.get_attribute('href') for url in past_auctions_urls]
                 for final_url in page_urls:
@@ -85,13 +87,15 @@ class CarScrapper:
             for url in final_past_auction_urls:
                 obj.writelines(f"{url}\n")
                 
-            
+            #   
+    
+    # save urls of new auctions & update the overall list of auction URLs
     def update_past_auction_urls(self):
-        with open('auction_urls.txt', 'r') as obj:
+        with open('auction_urls_copy.txt', 'r') as obj:
             print("Reading previous URLs...")
             old_urls = obj.readlines()
 
-        daily_urls = [] # temporary list to hold new urls 
+        daily_urls = []
         
         page=1
         while True and page <= 2:
@@ -113,18 +117,26 @@ class CarScrapper:
             except Exception as e:
                 print(e)
                 break
+        
+        
+        with open(f'daily urls/{datetime.today().date()}.txt','w') as file:
+            print("Saving daily auction urls...")
+            for url in daily_urls:
+                if f"{url}\n" not in old_urls:
+                    file.writelines(f"{url}\n")
             
-        print('Checking duplicate URLs...')
+            
         for index, url in enumerate(daily_urls):
             if url not in old_urls:
-                old_urls.insert(index,url.strip('\n'))        
+                old_urls.insert(index,url.strip())        
 
-        with open('auction_urls.txt','w') as obj:
+        with open('auction_urls_copy.txt','w') as obj:
             print('Updating URLs...')
             for url in old_urls:
                 obj.writelines(f"{url.strip()}\n")
-        
-    def scrap_auction_details(self,urls):
+             
+    # scrape auction details
+    def scrape_auction_details(self,urls):
                 
         def load_auction_page(url):
             try:
@@ -305,7 +317,7 @@ class CarScrapper:
             
         auction_details = {}       
         for url in urls:
-            print(f"Scrapping {url}")
+            print(f"scraping {url}")
         
             driver = load_auction_page(url.strip('\n'))
             auction_title = get_auction_title(driver)
@@ -338,30 +350,36 @@ class CarScrapper:
             
             
         return auction_details
-   
-   
-            
-    def read_auction_urls(self):
+
+    # scrape and save auction details in chunks
+    def scrape_dump_in_chunks(self,chunk_size):
         with open('auction_urls.txt', 'r') as obj:
             print("Reading auction urls...")
             auction_urls = obj.readlines()
-
-        return auction_urls
-
-    def scrap_dump_in_chunks(self,chunk_size):
-        auction_urls = self.read_auction_urls()
         
-        for index in range(0, len(auction_urls[:5]),chunk_size):
+        for index in range(0, len(auction_urls),chunk_size):
             batch_urls = auction_urls[index:index+chunk_size]
             batch_name = f"{index+1}-{(index+chunk_size)}"
             auctions = self.scrap_auction_details(batch_urls)        
             with open(f"auctions{batch_name}.json", 'w') as obj:
                 json.dump(auctions, obj, indent=4)
+
+
+    def daily_scraper(self):
+        with open(f"daily urls/{datetime.today().date()}.txt", 'r') as file:
+            auction_urls = file.readlines()
+            auction_data = self.scrape_auction_details(auction_urls[:2])
             
-scrapper = CarScrapper("https://carsandbids.com/")
+        with open (f"daily auctions/{datetime.today().date()}.json", 'w') as file:
+            json.dump(auction_data, file, indent=4)
+        
+        
+                 
+scraper = CarScraper("https://carsandbids.com/")
 
-# scrapper.get_past_auctions_urls()
-# scrapper.update_past_auction_urls()
-scrapper.scrap_dump_in_chunks(3)
+# scraper.get_past_auctions_urls()
+# scraper.update_past_auction_urls()
+# scraper.scrap_dump_in_chunks(1000)
+scraper.daily_scraper()
 
-scrapper.driver.quit()
+scraper.driver.quit()
