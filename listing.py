@@ -10,7 +10,7 @@ import json
 
 
 
-class CarScrapper:
+class CarScraper:
     def __init__(self,url):
         self.url = url
         options = Options()
@@ -135,8 +135,8 @@ class CarScrapper:
             for url in old_urls:
                 obj.writelines(f"{url.strip()}\n")
              
-    # scrape
-    def scrap_auction_details(self,urls):
+    # scrape auction details
+    def scrape_auction_details(self,urls):
                 
         def load_auction_page(url):
             try:
@@ -350,8 +350,9 @@ class CarScrapper:
             
             
         return auction_details
-   
-    def scrap_dump_in_chunks(self,chunk_size):
+
+    # scrape and save auction details in chunks
+    def scrape_dump_in_chunks(self,chunk_size):
         with open('auction_urls.txt', 'r') as obj:
             print("Reading auction urls...")
             auction_urls = obj.readlines()
@@ -362,11 +363,23 @@ class CarScrapper:
             auctions = self.scrap_auction_details(batch_urls)        
             with open(f"auctions{batch_name}.json", 'w') as obj:
                 json.dump(auctions, obj, indent=4)
+
+
+    def daily_scraper(self):
+        with open(f"daily urls/{datetime.today().date()}.txt", 'r') as file:
+            auction_urls = file.readlines()
+            auction_data = self.scrape_auction_details(auction_urls[:2])
             
-scrapper = CarScrapper("https://carsandbids.com/")
+        with open (f"daily auctions/{datetime.today().date()}.json", 'w') as file:
+            json.dump(auction_data, file, indent=4)
+        
+        
+                 
+scraper = CarScraper("https://carsandbids.com/")
 
-# scrapper.get_past_auctions_urls()
-scrapper.update_past_auction_urls()
-# scrapper.scrap_dump_in_chunks(1000)
+# scraper.get_past_auctions_urls()
+# scraper.update_past_auction_urls()
+# scraper.scrap_dump_in_chunks(1000)
+scraper.daily_scraper()
 
-scrapper.driver.quit()
+scraper.driver.quit()
