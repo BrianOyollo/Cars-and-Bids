@@ -90,8 +90,11 @@ class CarScraper:
             #   
     
     # save urls of new auctions & update the overall list of auction URLs
-    def update_past_auction_urls(self):
-        with open('auction_urls.txt', 'r') as obj:
+    def update_past_auction_urls(self,**context):
+        urls_file_path = context['templates_dict']['urls_file_path']
+        
+        
+        with open('auction_urls_copy.txt', 'r') as obj:
             print("Reading previous URLs...")
             old_urls = obj.readlines()
 
@@ -119,7 +122,7 @@ class CarScraper:
                 break
         
         
-        with open(f'daily urls/{datetime.today().date()}.txt','w') as file:
+        with open(f'daily urls/{urls_file_path}.txt','w') as file:
             print("Saving daily auction urls...")
             for url in daily_urls:
                 if f"{url}\n" not in old_urls:
@@ -355,18 +358,20 @@ class CarScraper:
     def scrape_dump_in_chunks(self,chunk_size):
         with open('auction_urls.txt', 'r') as obj:
             print("Reading auction urls...")
-            auction_urls = obj.readlines()
+            auction_urls = obj.readlines()[5999:]
         
         for index in range(0, len(auction_urls),chunk_size):
             batch_urls = auction_urls[index:index+chunk_size]
-            batch_name = f"{index+1}-{(index+chunk_size)}"
+            batch_name = f"{index+1}-{(index+chunk_size)}_1"
             auctions = self.scrape_auction_details(batch_urls)        
             with open(f"auctions{batch_name}.json", 'w') as obj:
                 json.dump(auctions, obj, indent=4)
 
 
-    def daily_scraper(self):
-        with open(f"daily urls/{datetime.today().date()}.txt", 'r') as file:
+    def daily_scraper(self, **context):
+        auctions_file_path = context['templates_dict']['auctions_file_path']
+        
+        with open(f"daily urls/{auctions_file_path}.txt", 'r') as file:
             auction_urls = file.readlines()
             auction_data = self.scrape_auction_details(auction_urls)
             
