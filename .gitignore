@@ -1,14 +1,12 @@
 /env
 /geckodriver.log
 # /urls.json
-/test.json
-/urls copy.json
-/new_data.json
-/new_data.txt
 /auction_urls_copy.txt
 /trial.py
 /trial2.py
 /trial3.py
-
+/trial4.py
+/dummy data
+/auctions1-1000
 
 

@@ -21,20 +21,26 @@ with DAG(
         "email_on_failure": True,
         "email_on_retry": True,
         "retries": 1,
-        "retry_delay": timedelta(minutes=2),
+        "retry_delay": timedelta(minutes=5),
         },
-    description = 'trial dag',
-    schedule = None,
-    start_date = datetime(2023,2,27),
+    description = 'Scrape daily auctions and update the URLs list',
+    schedule = "@daily",
+    start_date = datetime(2023,3,3),
     ) as dag:
         task1 = PythonOperator(
-                    task_id = 'daily_urls',
+                    task_id = 'update_daily_urls',
                     python_callable = car_scraper.update_past_auction_urls,
+                    templates_dict={
+                        'urls_file_path':"{{ds}}"
+                    }
                 )
         
         task2 = PythonOperator(
-            task_id = 'daily_scrape',
+            task_id = 'scrape_daily_auctions',
             python_callable = car_scraper.daily_scraper,
+            templates_dict={
+                "auctions_file_path":"{{ds}}"
+            }
         )
         
         # task3 = EmailOperator(
