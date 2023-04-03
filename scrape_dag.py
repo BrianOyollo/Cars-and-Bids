@@ -2,6 +2,8 @@ import airflow
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
+from airflow.sensors.filesystem import FileSensor
+from airflow.exceptions import AirflowSensorTimeout
 from datetime import datetime,timedelta
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
@@ -10,16 +12,22 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 import json
 import time
-import sys
 
-# sys.path.append('/home/brian_oyollo/Documents/projects/demuro/Cars-and-Bids/')
-# from listing import CarScraper
-
-# car_scraper = CarScraper("https://carsandbids.com/")
+file_path = 'home/brian_oyollo/Documents/projects/demuro/Cars-and-Bids'
 
 options = Options()
 options.add_argument("--headless")
 driver = webdriver.Firefox(options=options) 
+
+
+def teardown():
+    driver.quit()
+    
+def no_urls_file(context):
+    if isinstance(context['exception'], AirflowSensorTimeout):
+        with open(f"scrape_logs.txt",'a') as file:
+            file.write(f"No urls found found on{{{{ds}}}}😶\n") 
+    driver.quit()
 
 def update_past_auction_urls(**context):
     urls_file_path = context['templates_dict']['urls_file_path']
@@ -31,7 +39,7 @@ def update_past_auction_urls(**context):
     daily_urls = []
     
     page=1
-    while True and page <= 2:
+    while True and page <= 7:
         try:
             driver.get(f"https://carsandbids.com/past-auctions/?page={page}")
             print(f"scraping page {page}...")
@@ -51,18 +59,23 @@ def update_past_auction_urls(**context):
             print(e)
             break
     
+    #  create daily urls file
+    new_urls = []
+    for url in daily_urls:
+        if f"{url}\n" not in old_urls:
+            new_urls.append(url)
     
-    with open(f'daily urls/{datetime.today().date()}.txt','w') as file:
+    if len(new_urls) > 0:
+        with open(f'{urls_file_path}','w') as file:
             print("Saving daily auction urls...")
-            for url in daily_urls:
-                if f"{url}\n" not in old_urls:
-                    file.writelines(f"{url}\n")
+            for url in new_urls:
+                file.writelines(f"{url}\n")
              
     for index, url in enumerate(daily_urls):
         if f"{url}\n" not in old_urls:
             old_urls.insert(index,url.strip())        
 
-    with open('auction_urls_copy.txt','w') as obj:
+    with open('auction_urls.txt','w') as obj:
         print('Updating URLs...')
         for url in old_urls:
             obj.writelines(f"{url.strip()}\n")
@@ -251,19 +264,19 @@ def scrape_auction_details(urls):
         for url in urls:
             print(f"scraping {url}")
         
-            driver = load_auction_page(url.strip('\n'))
-            auction_title = get_auction_title(driver)
-            auction_subtitle = get_auction_subtitle(driver)
-            auction_quick_facts = get_quick_facts(driver)
-            dougs_take = get_dougs_take(driver)
-            auction_highlights = get_auction_highlights(driver)
-            auction_equipment = get_auction_equiment(driver)
-            auction_modifications = get_auction_modifications(driver)
-            auction_known_flaws = get_known_flaws(driver)
-            auction_services = get_service_history(driver)
-            auction_included_items = get_included_items(driver)
-            auction_ownership_history = get_ownership_hostory(driver)
-            auction_stats = get_auction_stats(driver)
+            url_driver = load_auction_page(url.strip('\n'))
+            auction_title = get_auction_title(url_driver)
+            auction_subtitle = get_auction_subtitle(url_driver)
+            auction_quick_facts = get_quick_facts(url_driver)
+            dougs_take = get_dougs_take(url_driver)
+            auction_highlights = get_auction_highlights(url_driver)
+            auction_equipment = get_auction_equiment(url_driver)
+            auction_modifications = get_auction_modifications(url_driver)
+            auction_known_flaws = get_known_flaws(url_driver)
+            auction_services = get_service_history(url_driver)
+            auction_included_items = get_included_items(url_driver)
+            auction_ownership_history = get_ownership_hostory(url_driver)
+            auction_stats = get_auction_stats(url_driver)
             
             auction_details[url.strip('\n')] = {  
                 'auction_title':auction_title,
@@ -279,8 +292,7 @@ def scrape_auction_details(urls):
                 'ownership_history':auction_ownership_history,
                 'auction_stats':auction_stats
             }
-            
-            
+              
         return auction_details
 
                 
@@ -288,45 +300,68 @@ def daily_scraper(**context):
     auctions_file_path = context['templates_dict']['auctions_file_path']
     urls_file_path = context['templates_dict']['urls_file_path']
     
-    with open(f"daily urls/{urls_file_path}", 'r') as file:
+    with open(f"{urls_file_path}", 'r') as file:
         auction_urls = file.readlines()
-        auction_data = scrape_auction_details(auction_urls[:5])
+        auction_data = scrape_auction_details(auction_urls)
         
-    with open (f"daily auctions/{auctions_file_path}", 'w') as file:
+    with open (f"{auctions_file_path}", 'w') as file:
         json.dump(auction_data, file, indent=4)
 
+urls_file = '{{ds}}.txt'
 with DAG(
-    'cars_abd_bids_v4',
+    'cars_and_bids_v4',
     default_args={
-         'owner':"BrianOyollo",
-         'email':'oyollobrian@gmail.com',
+        'owner':"BrianOyollo",
+        'email':'oyollobrian@gmail.com',
         "email_on_failure": True,
         "email_on_retry": True,
         "retries": 1,
         "retry_delay": timedelta(minutes=1),
         },
-    description='Just another trial',
-    start_date = datetime(2023,3,17),
-    schedule = None,
+    description='Scrape daily auctions from Cars & Bids',
+    start_date = datetime(2023,3,24),
+    schedule = '@daily',
 ) as dag:
-    update_urls_task = PythonOperator(
+    update_urls = PythonOperator(
        task_id= 'update_daily_urls',
         python_callable = update_past_auction_urls,
         templates_dict={
-            'urls_file_path':"{{ds}}.txt"
+            'urls_file_path':"daily_urls/{{ds}}.txt"
         }
+        
     )
-    
-    scrape_daily_urls_task = PythonOperator(
+
+    wait_for_urls = FileSensor(
+        task_id = 'waiting_for_urls_file',
+        filepath = f"{file_path}/daily_urls/{{{{ds}}}}.txt",
+        poke_interval = 60*5,
+        timeout  = 60*60*2,
+        mode = 'poke',
+        on_failure_callback = no_urls_file
+    )
+
+    scrape_daily_urls = PythonOperator(
         task_id='scrape_daily_urls',
         python_callable = daily_scraper,
-        templates_dict = {
-            'auctions_file_path':'daily auctions/{{ds}}.json',
-            'urls_file_path':'daily urls/{{ds}}.txt'
+        templates_dict={
+            'urls_file_path':"daily_urls/{{ds}}.txt",
+            'auctions_file_path':"daily_auctions/{{ds}}.json",
             
         }
     )
     
-update_urls_task >> scrape_daily_urls_task
+    backup = BashOperator(
+        task_id = 'backup_auction_data',
+        bash_command=f"""
+        cp /{file_path}/daily_auctions/{{{{ds}}}}.json /{file_path}/backup/daily_auctions/
+        cp /{file_path}/daily_urls/{{{{ds}}}}.txt /{file_path}/backup/daily_urls/
+        """
+    )
 
-driver.quit()
+    close_driver = PythonOperator(
+        task_id = "close_driver",
+        python_callable=teardown
+    )
+
+update_urls >> wait_for_urls >> scrape_daily_urls >> backup >> close_driver 
+
