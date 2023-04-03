@@ -5,10 +5,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import time
-from datetime import datetime
+from datetime import datetime,timedelta
 import json
 
-
+saving_date =  datetime.today().date() - timedelta(days=1)
 
 class CarScraper:
     def __init__(self,url):
@@ -120,7 +120,7 @@ class CarScraper:
                 break
         
         
-        with open(f'daily urls/{datetime.today().date()}.txt','w') as file:
+        with open(f'daily_urls/{saving_date}.txt','w') as file:
             print("Saving daily auction urls...")
             for url in daily_urls:
                 if f"{url}\n" not in old_urls:
@@ -368,11 +368,11 @@ class CarScraper:
 
     def daily_scraper(self):
         
-        with open(f"daily urls/{datetime.today().date()}", 'r') as file:
+        with open(f"daily_urls/{saving_date}.txt", 'r') as file:
             auction_urls = file.readlines()
-            auction_data = self.scrape_auction_details(auction_urls[:5])
+            auction_data = self.scrape_auction_details(auction_urls)
             
-        with open (f"daily auctions/{datetime.today().date()}.json", 'w') as file:
+        with open (f"daily_auctions/{saving_date}.json", 'w') as file:
             json.dump(auction_data, file, indent=4)
         
     def teardown(self):
@@ -382,7 +382,5 @@ scraper = CarScraper("https://carsandbids.com/")
 
 # scraper.get_past_auctions_urls()
 scraper.update_past_auction_urls()
-# scraper.scrape_dump_in_chunks(500)
-# scraper.daily_scraper()
-
-scraper.driver.quit() 
+scraper.daily_scraper()
+scraper.teardown()
