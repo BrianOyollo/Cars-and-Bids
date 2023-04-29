@@ -99,7 +99,7 @@ class CarScraper:
         daily_urls = []
         
         page=1
-        while True and page <= 7:
+        while True and page <= 5:
             try:
                 self.driver.get(f"https://carsandbids.com/past-auctions/?page={page}")
                 print(f"scraping page {page}...")
@@ -119,13 +119,17 @@ class CarScraper:
                 print(e)
                 break
         
-        
-        with open(f'daily_urls/{saving_date}.txt','w') as file:
-            print("Saving daily auction urls...")
-            for url in daily_urls:
-                if f"{url}\n" not in old_urls:
+        new_urls=[]
+        for url in daily_urls:
+            if f"{url}\n" not in old_urls:
+                new_urls.append(url)
+                    
+        if len(new_urls)>0:            
+            with open(f'daily_urls/{saving_date}.txt','w') as file:
+                print("Saving daily auction urls...")
+                for url in new_urls:
                     file.writelines(f"{url}\n")
-             
+                
         for index, url in enumerate(daily_urls):
             if f"{url}\n" not in old_urls:
                 old_urls.insert(index,url.strip())        
