@@ -11,6 +11,7 @@ cars_and_bids_topicarn = os.environ['CARS_AND_BIDS_TOPICARN']
 
 
 saving_date =  datetime.today().date() - timedelta(days=1)
+project_path = "/home/brian_oyollo/Documents/projects/demuro/Cars-and-Bids"
 
 # s3
 s3 = boto3.client(
@@ -48,18 +49,24 @@ message = f"""
     """
 no_auctions_message = f"There were no auctions recorded on {saving_date}. Please check again tomorrow."
 
-auctions_file = f'daily_auctions/{saving_date}.json'
-urls_file = f'daily_urls/{saving_date}.txt'
+auctions_file = f"{project_path}/daily_auctions/{saving_date}.json"
+urls_file = f"{project_path}/daily_urls/{saving_date}.txt"
+# print(os.path.isfile(auctions_file))
+
 try:
     if os.path.isfile(auctions_file):
         # upload files
-        s3.upload_file(Filename = f'daily_auctions/{saving_date}.json',Bucket = 'daily-auctions',Key = f'{saving_date}.json')
-        s3.upload_file(Filename = f'daily_urls/{saving_date}.txt', Bucket = 'daily-urls', Key = f'{saving_date}.txt')
+        
+        print("uploading urls and auction files to cloud....")
+        s3.upload_file(Filename = f"{project_path}/daily_auctions/{saving_date}.json",Bucket = 'daily-auctions',Key = f"{saving_date}.json")
+        s3.upload_file(Filename = f"{project_path}/daily_urls/{saving_date}.txt", Bucket = 'daily-urls', Key = f"{saving_date}.txt")
         
         # send report email
+        print("Sending daily report email...")
         sns.publish(TopicArn = cars_and_bids_topicarn, Message = message, Subject = subject) 
             
     else:
+        print("Sending daily report email...")
         sns.publish(TopicArn = cars_and_bids_topicarn, Message = no_auctions_message,Subject = subject)
       
 except Exception as e:
