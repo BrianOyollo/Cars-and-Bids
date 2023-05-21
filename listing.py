@@ -60,7 +60,7 @@ class CarScraper:
         start_time = time.time()
             
         final_past_auction_urls = []
-        page_num=1
+        page_num=255
         while True:  
             try:
                 self.driver.get(f"https://carsandbids.com/past-auctions/?page={page_num}")
@@ -99,7 +99,7 @@ class CarScraper:
         daily_urls = []
         
         page=1
-        while True and page <= 5:
+        while True and page <= 7:
             try:
                 self.driver.get(f"https://carsandbids.com/past-auctions/?page={page}")
                 print(f"scraping page {page}...")

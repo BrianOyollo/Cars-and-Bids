@@ -7,11 +7,11 @@ import json
 # access keys
 aws_access_key_id = os.environ['ACCESS_KEY_ID']
 aws_secret_access_key = os.environ['SECRET_ACCESS_KEY']
-cars_and_bids_topicarn = os.environ['CARS_AND_BIDS_TOPICARN']
+
 
 
 saving_date =  datetime.today().date() - timedelta(days=1)
-project_path = "/home/brian_oyollo/Documents/projects/demuro/Cars-and-Bids"
+project_path = "/home/ec2-user/carsnbids"
 
 # s3
 s3 = boto3.client(
@@ -20,54 +20,19 @@ s3 = boto3.client(
     aws_access_key_id = aws_access_key_id,
     aws_secret_access_key = aws_secret_access_key
 )
-# sns
-sns = boto3.client(
-    'sns',
-    region_name = 'us-east-1',
-    aws_access_key_id = aws_access_key_id,
-    aws_secret_access_key = aws_secret_access_key
-)
 
-
-
-subject = f'Cars&Bids: Daily Auction Summary'
-message = f"""
-        Hello,
-
-        Here is the daily auction report for {saving_date}:
-
-            Number of auctions recorded: xx
-
-            Highest bid:$xx (Vehicle: abc)
-
-            Lowest bid:$xx (Vehicle: abc)
-
-        Thank you for your attention
-        
-        Brian Oyollo
-        DE Dept.
-    """
-no_auctions_message = f"There were no auctions recorded on {saving_date}. Please check again tomorrow."
+# print(s3.list_buckets())
 
 auctions_file = f"{project_path}/daily_auctions/{saving_date}.json"
 urls_file = f"{project_path}/daily_urls/{saving_date}.txt"
-# print(os.path.isfile(auctions_file))
+
 
 try:
     if os.path.isfile(auctions_file):
-        # upload files
-        
+        # upload files  
         print("uploading urls and auction files to cloud....")
         s3.upload_file(Filename = f"{project_path}/daily_auctions/{saving_date}.json",Bucket = 'daily-auctions',Key = f"{saving_date}.json")
-        s3.upload_file(Filename = f"{project_path}/daily_urls/{saving_date}.txt", Bucket = 'daily-urls', Key = f"{saving_date}.txt")
-        
-        # send report email
-        print("Sending daily report email...")
-        sns.publish(TopicArn = cars_and_bids_topicarn, Message = message, Subject = subject) 
-            
-    else:
-        print("Sending daily report email...")
-        sns.publish(TopicArn = cars_and_bids_topicarn, Message = no_auctions_message,Subject = subject)
-      
+        s3.upload_file(Filename = f"{project_path}/daily_urls/{saving_date}.txt", Bucket = 'daily-urls', Key = f"{saving_date}.txt")  
+
 except Exception as e:
     print(e)

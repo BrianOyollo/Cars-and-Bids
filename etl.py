@@ -6,25 +6,25 @@ import boto3
 from datetime import datetime, timedelta
 import numpy as np
 
-def etl(auction_file):
-    saving_date =  datetime.today().date() - timedelta(days=1)
+def etl(file_name):
     # Extract
-    with open(f"/home/brian_oyollo/Documents/projects/demuro/Backup/{auction_file}") as file:
+    with open(f"daily_auctions/{file_name}.json") as file:
         data = json.load(file)
        
-    # ---> flatten json data
+  
+    
+    # ---> add url 
+    for key in data.keys():
+        data[key].update({'url':key})
+        
     auctions = []
     for key in data.keys():
         auctions.append(data[key])
 
-    # Transform
-    
-    # ---> add url 
-    
-    for key in data.keys():
-        data[key].update({'url':key})
-        
-    df = pd.json_normalize(auctions)   
+    # Transform 
+    # ---> flatten json data    
+    df = pd.json_normalize(auctions)
+       
     # ---> add auction_id (from the url)
     df["auction_id"] = df['url'].str.split("/").str[-2]
     
@@ -150,8 +150,8 @@ def etl(auction_file):
     # ---> save to local storage
     saving_date =  datetime.today().date() - timedelta(days=1)
     print(f"----> saving to local storage")
-    df.to_json(f"auction_data/{auction_file.split('.')[0]}.json", orient='records',indent=4)
-    df['url'].to_csv(f"auction_data/{auction_file.split('.')[0]}.csv")
+    df.to_json(f"auction_data/{file_name}.json", orient='records',indent=4)
+    df['url'].to_csv(f"auction_data/{file_name}.csv")
     
     
     # ---> load to s3
@@ -169,18 +169,21 @@ def etl(auction_file):
     )
     print(f"----> uploading to s3")
     s3.upload_file(
-        Filename = f"auction_data/{auction_file.split('.')[0]}.json",
+        Filename = f"auction_data/{file_name}.json",
         Bucket = 'carsandbids-processed',
-        Key = f"{auction_file.split('.')[0]}.json"
+        Key = f"{file_name}.json"
     )
 
     s3.upload_file(
-        Filename = f"auction_data/{auction_file.split('.')[0]}.json",
+        Filename = f"auction_data/{file_name}.csv",
         Bucket = 'carsandbids-processed',
-        Key = f"{auction_file.split('.')[0]}.csv"
+        Key = f"{file_name}.csv"
     )
     
 
-for auction_file in os.listdir('/home/brian_oyollo/Documents/projects/demuro/Backup'):
-    print(f"Processing {auction_file}")
-    etl(auction_file)
+# for auction_file in os.listdir('/home/brian_oyollo/Documents/projects/demuro/Backup'):
+
+file_name =  f"{datetime.today().date() - timedelta(days=1)}"
+
+print(f"Processing {file_name}")
+etl(file_name)
