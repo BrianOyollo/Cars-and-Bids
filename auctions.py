@@ -1,5 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -15,7 +16,11 @@ class CarScraper:
         self.url = url
         options = Options()
         options.add_argument('--headless')
-        self.driver = webdriver.Firefox(options=options) 
+
+        geckodriver_path = "/snap/bin/geckodriver"  # specify the path to your geckodriver
+        driver_service = Service(executable_path=geckodriver_path)
+
+        self.driver = webdriver.Firefox(options=options, service=driver_service) 
         
     # get urls of live auctions
     def get_live_auction_urls(self): 
@@ -34,7 +39,7 @@ class CarScraper:
         start_time = time.time()
         
         self.driver.get(self.url)
-        vehicle_urls = WebDriverWait(self.driver, 20).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='auction-title']/a")))
+        vehicle_urls = WebDriverWait(self.driver, 30).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='auction-title']/a")))
         urls = [url.get_attribute('href') for url in vehicle_urls] # might contain duplicates. 
         final_live_auction_urls = list(set(urls)) # convert to set to remove duplicates if any
         
@@ -42,7 +47,7 @@ class CarScraper:
         
         return final_live_auction_urls,len(final_live_auction_urls), elapsed_time, 
 
-    # get urls of all auctions (from Nov. 2020)
+    # get urls of all auctions (from Nov. 3030)
     def get_past_auctions_urls(self):
         
         """
@@ -54,7 +59,7 @@ class CarScraper:
         - elapsed_time: the time elapsed while scraping the URLs
         
         Raises:
-        - TimeoutException: if the page or element could not be found within the allotted time (20 seconds)
+        - TimeoutException: if the page or element could not be found within the allotted time (30 seconds)
         - Exception: if there was an error during the scraping process
         """
         start_time = time.time()
@@ -65,19 +70,19 @@ class CarScraper:
             try:
                 self.driver.get(f"https://carsandbids.com/past-auctions/?page={page_num}")
                 print(f"scraping page {page_num}...")
-                past_auctions_urls = WebDriverWait(self.driver,20).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='auction-title']/a")))
+                past_auctions_urls = WebDriverWait(self.driver,30).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='auction-title']/a")))
                 page_urls = [url.get_attribute('href') for url in past_auctions_urls]
                 for final_url in page_urls:
                     final_past_auction_urls.append(final_url)
                    
-                next_page_btn = WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.XPATH, "//li[@class='arrow next']/button[@class='btn rb btn-link']")))
+                next_page_btn = WebDriverWait(self.driver, 30).until(EC.element_to_be_clickable((By.XPATH, "//li[@class='arrow next']/button[@class='btn rb btn-link']")))
                 time.sleep(5)
                 self.driver.execute_script("arguments[0].click();", next_page_btn)
                 page_num+=1
             except:
                 print("Looks like you got all the auctions.")
                 break
-    
+   
         elapsed_time = time.time()- start_time
         print(f"{page_num} pages scrapped in {round(elapsed_time,2)}")
         
@@ -86,8 +91,7 @@ class CarScraper:
             print(f"Writing urls to file...")
             for url in final_past_auction_urls:
                 obj.writelines(f"{url}\n")
-                
-            #   
+
     
     # save urls of new auctions & update the overall list of auction URLs
     def update_past_auction_urls(self):
@@ -103,14 +107,14 @@ class CarScraper:
             try:
                 self.driver.get(f"https://carsandbids.com/past-auctions/?page={page}")
                 print(f"scraping page {page}...")
-                vehicle_urls = WebDriverWait(self.driver, 20).until(
+                vehicle_urls = WebDriverWait(self.driver, 30).until(
                         EC.presence_of_all_elements_located((By.XPATH, "//div[@class='auction-title']/a")))
                 
                 urls = [url.get_attribute('href') for url in vehicle_urls]
                 for final_url in urls:
                     daily_urls.append(final_url)
                     
-                next_page_btn = WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.XPATH, "//li[@class='arrow next']/button[@class='btn rb btn-link']")))
+                next_page_btn = WebDriverWait(self.driver, 30).until(EC.element_to_be_clickable((By.XPATH, "//li[@class='arrow next']/button[@class='btn rb btn-link']")))
                 
                 time.sleep(5)
                 self.driver.execute_script("arguments[0].click();", next_page_btn)
@@ -152,19 +156,24 @@ class CarScraper:
             return self.driver
                 
         def get_auction_title(driver):
-            try:    
-                auction_title = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, "//div[@class='auction-title ']/h1"))).text
+            try:
+                print('auction title...', end='', flush=True)    
+                auction_title = WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.TAG_NAME, "h1"))).text
+
+                print("✔️")
             except Exception as e:
-                print("Error getting auction title")
+                print(f"✖️:{e}")
                 auction_title = None
 
             return auction_title
 
         def get_auction_subtitle(driver):
-            try:    
-                auction_subtitle = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, "//div[@class='d-md-flex justify-content-between flex-wrap']/h2"))).text
+            try: 
+                print('auction subtitle...', end='', flush=True)   
+                auction_subtitle = WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.XPATH, "//div[@class='d-md-flex justify-content-between flex-wrap']/h2"))).text
+                print("✔️")
             except Exception as e:
-                print("Error getting auction sub-title")
+                print(f"✖️:{e}")
                 auction_subtitle = None
             
             return auction_subtitle
@@ -172,10 +181,12 @@ class CarScraper:
         def get_quick_facts(driver):
             quick_facts = {}
             try:
-                auction_quick_facts_dt = WebDriverWait(driver, 20).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='quick-facts']/dl/dt")))
-                auction_quick_facts_dd = WebDriverWait(driver, 20).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='quick-facts']/dl/dd")))
+                print('auction quick facts...', end='', flush=True)
+                auction_quick_facts_dt = WebDriverWait(driver, 30).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='quick-facts']/dl/dt")))
+                auction_quick_facts_dd = WebDriverWait(driver, 30).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='quick-facts']/dl/dd")))
+                print("✔️")
             except Exception as e:
-                print("Error getting auction quick-facts")
+                print(f"✖️:{e}")
                 auction_quick_facts_dt = []
                 auction_quick_facts_dd = []    
                 
@@ -186,79 +197,96 @@ class CarScraper:
 
         def get_dougs_take(driver):
             try:
-                dougs_take = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, "//div[@class='detail-section dougs-take']/div[@class='detail-body']/p"))).text
+                print("Doug's take...", end='', flush=True)
+                dougs_take = WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.XPATH, "//div[@class='detail-section dougs-take ']/div[@class='detail-body']/p"))).text
+                print("✔️")
             except Exception as e:
-                print("Error getting Doug's take")
+                print(f"✖️:{e}")
                 dougs_take = None
+                
             
             return dougs_take
                 
         def get_auction_highlights(driver):
             try:
-                auction_highlights = WebDriverWait(driver,20).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='detail-section detail-highlights']/div[@class='detail-body']/ul/li")))
+                print('auction highlights...', end='', flush=True)
+                auction_highlights = WebDriverWait(driver,30).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='detail-section detail-highlights']/div[@class='detail-body']/ul/li")))
                 highlights = [highlight.text for highlight in auction_highlights]
+                print("✔️")
             except Exception as e:
-                print("Error getting auction's highlights")
+                print(f"✖️:{e}")
                 highlights = []
                 
             return highlights
         
         def get_auction_equiment(driver):
             try:
-                auction_equipment = WebDriverWait(driver,20).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='detail-section detail-equipment']/div[@class='detail-body']/ul/li")))
+                print('auction equipment...', end='', flush=True)
+                auction_equipment = WebDriverWait(driver,30).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='detail-section detail-equipment']/div[@class='detail-body']/ul/li")))
                 equipment = [equipment.text for equipment in auction_equipment]
+                print("✔️")
             except Exception as e:
-                print("Error getting auction's equipment")
+                print(f"✖️:{e}")
                 equipment = []
                 
             return equipment
 
         def get_auction_modifications(driver):
             try:
-                auction_modifications = WebDriverWait(driver,20).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='detail-section detail-modifications']/div[@class='detail-body']/ul/li")))
+                print('auction modifications...', end='', flush=True)
+                auction_modifications = WebDriverWait(driver,30).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='detail-section detail-modifications']/div[@class='detail-body']/ul/li")))
                 modifications = [modification.text for modification in auction_modifications]
+                print("✔️")
             except Exception as e:
-                print("Error getting auction's modifications")
+                print(f"✖️:{e}")
                 modifications = []
                 
             return modifications
 
         def get_known_flaws(driver):
             try:
-                auction_known_flaws = WebDriverWait(driver,20).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='detail-section detail-known_flaws']/div[@class='detail-body']/ul/li")))
+                print('auction flaws...', end='', flush=True)
+                auction_known_flaws = WebDriverWait(driver,30).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='detail-section detail-known_flaws']/div[@class='detail-body']/ul/li")))
                 known_flaws = [flaw.text for flaw in auction_known_flaws]
+                print("✔️")
             except Exception as e:
-                print("Error getting auction's known flaws")
+                print(f"✖️:{e}")
                 known_flaws = []
                 
             return known_flaws
 
         def get_service_history(driver):
             try:
-                auction_service_history = WebDriverWait(driver,20).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='detail-section detail-recent_service_history']/div[@class='detail-body']/ul/li")))
+                print('service history...', end='', flush=True)
+                auction_service_history = WebDriverWait(driver,30).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='detail-section detail-recent_service_history']/div[@class='detail-body']/ul/li")))
                 services = [service_history.text for service_history in auction_service_history]
+                print("✔️")
             except Exception as e:
-                print("Error getting auction's service history")
+                print(f"✖️:{e}")
                 services = []
                 
             return services
 
         def get_included_items(driver):
             try:
-                other_included_items = WebDriverWait(driver,20).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='detail-section detail-other_items']/div[@class='detail-body']/ul/li")))
+                print('included items...', end='', flush=True)
+                other_included_items = WebDriverWait(driver,30).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='detail-section detail-other_items']/div[@class='detail-body']/ul/li")))
                 included_items = [item.text for item in other_included_items]
+                print("✔️")
             except Exception as e:
-                print("Error getting auction's included items")
+                print(f"✖️:{e}")
                 included_items = []
                 
             return included_items    
 
         def get_ownership_hostory(driver):
             try:
-                ownership_history = WebDriverWait(driver,20).until(EC.presence_of_element_located((By.XPATH, "//div[@class='detail-section detail-ownership_history']/div[@class='detail-body']/p")))
+                print('ownership history....', end='', flush=True)
+                ownership_history = WebDriverWait(driver,30).until(EC.presence_of_element_located((By.XPATH, "//div[@class='detail-section detail-ownership_history']/div[@class='detail-body']/p")))
                 ownership_history = ownership_history.text
+                print("✔️")
             except Exception as e:
-                print("Error getting auction's ownership history")
+                print(f"✖️:{e}")
                 ownership_history = None
             
             return ownership_history
@@ -266,12 +294,14 @@ class CarScraper:
         def get_auction_stats(driver):
             auction_stats = {}
             try:
-                reserve_status = WebDriverWait(driver,20).until(EC.presence_of_element_located((By.XPATH, "//div[@class='auction-subheading ']/h3/span"))).text
-                auction_status = WebDriverWait(driver,20).until(EC.presence_of_element_located((By.XPATH, "//div[@class='current-bid ended d-flex flex-column flex-shrink-1 ']/div[@class='d-flex bidder']/h4"))).text
-                highest_bid_value = WebDriverWait(driver,20).until(EC.presence_of_element_located((By.XPATH, "//span[@class='bid-value']"))).text
-                auction_date = WebDriverWait(driver,20).until(EC.presence_of_element_located((By.XPATH, "//ul[@class='stats']/li/div[@class='td end-icon']"))).text
-                bid_count = WebDriverWait(driver,20).until(EC.presence_of_element_located((By.XPATH, "//ul[@class='stats']/li/div[@class='td bid-icon']"))).text
-                view_count = WebDriverWait(driver,20).until(EC.presence_of_element_located((By.XPATH, "//ul[@class='stats']/li/div[@class='td views-icon']"))).text
+                print('auction stats...', end='', flush=True)
+                reserve_status = WebDriverWait(driver,30).until(EC.presence_of_element_located((By.XPATH, "//div[@class='auction-subheading ']/h3/span"))).text
+                auction_status = WebDriverWait(driver,30).until(EC.presence_of_element_located((By.XPATH, "//div[@class='current-bid ended d-flex flex-column flex-shrink-1 ']/div[@class='d-flex bidder']/h4"))).text
+                highest_bid_value = WebDriverWait(driver,30).until(EC.presence_of_element_located((By.XPATH, "//span[@class='bid-value']"))).text
+                auction_date = WebDriverWait(driver,30).until(EC.presence_of_element_located((By.XPATH, "//ul[@class='stats']/li/div[@class='td end-icon']"))).text
+                bid_count = WebDriverWait(driver,30).until(EC.presence_of_element_located((By.XPATH, "//ul[@class='stats']/li/div[@class='td bid-icon']"))).text
+                view_count = WebDriverWait(driver,30).until(EC.presence_of_element_located((By.XPATH, "//ul[@class='stats']/li/div[@class='td views-icon']"))).text
+                
                 # scroll_pause_time = 5 # You can set your own pause time. My laptop is a bit slow so I use 1 sec
                 # screen_height = driver.execute_script("return window.screen.height;")   # get the screen height of the web
                 # i = 1
@@ -285,7 +315,7 @@ class CarScraper:
                     # # update scroll height each time after scrolled, as the scroll height can change after we scrolled the page
                     # scroll_height = driver.execute_script("return document.body.scrollHeight;")
                     # # Break the loop when the height we need to scroll to is larger than the total scroll height
-                        load_more = WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, "//li[@class='load-more']/button[@class='btn btn-secondary btn-block']")))
+                        load_more = WebDriverWait(driver, 30).until(EC.element_to_be_clickable((By.XPATH, "//li[@class='load-more']/button[@class='btn btn-secondary btn-block']")))
                         driver.execute_script("arguments[0].click();", load_more)
                         time.sleep(5)
                     except Exception as e:
@@ -297,9 +327,10 @@ class CarScraper:
                     
                 bids = WebDriverWait(driver, 5).until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='content']/dl[@class='placed-bid ']/dd[@class='bid-value']")))
                 bid_list=[bid.text for bid in bids]
+                print("✔️")
             except Exception as e:
                 print(e)
-                print("Error getting auction's stats")
+                print(f"✖️:{e}")
                 reserve_status = None
                 auction_status = None
                 highest_bid_value = None
@@ -378,7 +409,7 @@ class CarScraper:
             
         with open (f"daily_auctions/{saving_date}.json", 'w') as file:
             json.dump(auction_data, file, indent=4)
-        
+
     def teardown(self):
         self.driver.quit()
                  
