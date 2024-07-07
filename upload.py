@@ -26,13 +26,16 @@ s3 = boto3.client(
 auctions_file = f"{project_path}/daily_auctions/{saving_date}.json"
 urls_file = f"{project_path}/daily_urls/{saving_date}.txt"
 
+auction_files_bucket = 'carsandbids-daily-auctions'
+urls_files_bucket = 'carsandbids-daily-urls'
+
 
 try:
     if os.path.isfile(auctions_file):
         # upload files  
         print("uploading urls and auction files to cloud....")
-        s3.upload_file(Filename = f"{project_path}/daily_auctions/{saving_date}.json",Bucket = 'daily-auctions',Key = f"{saving_date}.json")
-        s3.upload_file(Filename = f"{project_path}/daily_urls/{saving_date}.txt", Bucket = 'daily-urls', Key = f"{saving_date}.txt")  
+        s3.upload_file(Filename = f"{project_path}/daily_auctions/{saving_date}.json",Bucket = auction_files_bucket, Key = f"{saving_date}.json")
+        s3.upload_file(Filename = f"{project_path}/daily_urls/{saving_date}.txt", Bucket = urls_files_bucket, Key = f"{saving_date}.txt")  
 
 except Exception as e:
     print(e)
