@@ -3,3 +3,8 @@
 /daily_urls
 /daily_auctions
 /geckodriver.log
+.env
+__pycache__
+/patch1
+/title_bug_fix
+

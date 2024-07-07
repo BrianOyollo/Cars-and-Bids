@@ -5,6 +5,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
+from utils import get_most_recent_url_file
 import time
 from datetime import datetime,timedelta
 import json
@@ -95,6 +96,13 @@ class CarScraper:
     
     # save urls of new auctions & update the overall list of auction URLs
     def update_past_auction_urls(self):
+        print('feteching most recent auction urls file...')
+        daily_urls_dir = "daily_urls"
+        recent_urls_file = get_most_recent_url_file(daily_urls_dir)
+
+        with open(f'daily_urls/{recent_urls_file}', 'r') as obj:
+            print("Reading previous URLs...")
+            most_recent_urls = obj.readlines()
 
         with open('auction_urls.txt', 'r') as obj:
             print("Reading previous URLs...")
@@ -125,7 +133,7 @@ class CarScraper:
         
         new_urls=[]
         for url in daily_urls:
-            if f"{url}\n" not in old_urls:
+            if f"{url}\n" not in most_recent_urls:
                 new_urls.append(url)
                     
         if len(new_urls)>0:            
@@ -134,8 +142,7 @@ class CarScraper:
                 for url in new_urls:
                     file.writelines(f"{url}\n")
                 
-        for index, url in enumerate(daily_urls):
-            if f"{url}\n" not in old_urls:
+        for index, url in enumerate(new_urls):
                 old_urls.insert(index,url.strip())        
 
         with open('auction_urls.txt','w') as obj:
@@ -405,7 +412,8 @@ class CarScraper:
         
         with open(f"daily_urls/{saving_date}.txt", 'r') as file:
             auction_urls = file.readlines()
-            auction_data = self.scrape_auction_details(auction_urls)
+        
+        auction_data = self.scrape_auction_details(auction_urls)
             
         with open (f"daily_auctions/{saving_date}.json", 'w') as file:
             json.dump(auction_data, file, indent=4)
