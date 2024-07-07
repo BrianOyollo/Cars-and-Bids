@@ -5,8 +5,8 @@ import json
 
 
 # access keys
-aws_access_key_id = os.environ['ACCESS_KEY_ID']
-aws_secret_access_key = os.environ['SECRET_ACCESS_KEY']
+aws_access_key_id = os.environ['AWS_ACCESS_KEY_ID12']
+aws_secret_access_key = os.environ['AWS_SECRET_ACCESS_KEY12']
 
 
 
