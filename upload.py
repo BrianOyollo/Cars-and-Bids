@@ -2,13 +2,13 @@ import os
 import boto3
 from datetime import datetime,timedelta
 import json
+from dotenv import load_dotenv
 
+load_dotenv()
 
 # access keys
 aws_access_key_id = os.environ['AWS_ACCESS_KEY_ID12']
 aws_secret_access_key = os.environ['AWS_SECRET_ACCESS_KEY12']
-
-
 
 saving_date =  datetime.today().date() - timedelta(days=1)
 project_path = "/home/ec2-user/carsnbids"
