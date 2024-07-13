@@ -101,7 +101,7 @@ class CarScraper:
         recent_urls_file = get_most_recent_url_file(daily_urls_dir)
 
         with open(f'daily_urls/{recent_urls_file}', 'r') as obj:
-            print("Reading previous URLs...")
+            print(f"Reading recent URLs af {recent_urls_file}...")
             most_recent_urls = obj.readlines()
 
         with open('auction_urls.txt', 'r') as obj:
@@ -410,8 +410,8 @@ class CarScraper:
 
     def daily_scraper(self):
         
-        # with open(f"daily_urls/{saving_date}.txt", 'r') as file:
-        with open(f"daily_urls/2024-07-03.txt", 'r') as file:
+        with open(f"daily_urls/{saving_date}.txt", 'r') as file:
+        # with open(f"daily_urls/2024-07-03.txt", 'r') as file:
             auction_urls = file.readlines()
         
         chunk_size = 100
