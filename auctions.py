@@ -414,13 +414,18 @@ class CarScraper:
             # with open(f"daily_urls/2024-07-03.txt", 'r') as file:
                 auction_urls = file.readlines()
             
-            chunk_size = 100
-            for i in range(0, len(auction_urls), chunk_size):
-                chunk = auction_urls[i:i+chunk_size]
-                auction_data = self.scrape_auction_details(chunk)
+            # chunk_size = 100
+            # for i in range(0, len(auction_urls), chunk_size):
+            #     chunk = auction_urls[i:i+chunk_size]
+            #     auction_data = self.scrape_auction_details(chunk)
                 
-                with open (f"daily_auctions/{saving_date}_chunk{i+1}_to_{i+chunk_size}c.json", 'w') as file:
+            #     with open (f"daily_auctions/{saving_date}_chunk{i+1}_to_{i+chunk_size}c.json", 'w') as file:
+            #         json.dump(auction_data, file, indent=4)
+            auction_data = self.scrape_auction_details(auction_urls)
+
+            with open (f"daily_auctions/{saving_date}.json", 'w') as file:
                     json.dump(auction_data, file, indent=4)
+
         except FileNotFoundError:
             print('No new auctions to scrape')
 
