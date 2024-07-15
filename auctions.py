@@ -96,13 +96,13 @@ class CarScraper:
     
     # save urls of new auctions & update the overall list of auction URLs
     def update_past_auction_urls(self):
-        print('feteching most recent auction urls file...')
-        daily_urls_dir = "daily_urls"
-        recent_urls_file = get_most_recent_url_file(daily_urls_dir)
+        # print('feteching most recent auction urls file...')
+        # daily_urls_dir = "daily_urls"
+        # recent_urls_file = get_most_recent_url_file(daily_urls_dir)
 
-        with open(f'daily_urls/{recent_urls_file}', 'r') as obj:
-            print(f"Reading recent URLs af {recent_urls_file}...")
-            most_recent_urls = obj.readlines()
+        # with open(f'daily_urls/{recent_urls_file}', 'r') as obj:
+        #     print(f"Reading recent URLs af {recent_urls_file}...")
+        #     most_recent_urls = obj.readlines()
 
         with open('auction_urls.txt', 'r') as obj:
             print("Reading previous URLs...")
@@ -133,7 +133,7 @@ class CarScraper:
         
         new_urls=[]
         for url in daily_urls:
-            if f"{url}\n" not in most_recent_urls:
+            if f"{url}\n" not in old_urls:
                 new_urls.append(url)
                     
         if len(new_urls)>0:            
@@ -409,18 +409,20 @@ class CarScraper:
 
 
     def daily_scraper(self):
-        
-        with open(f"daily_urls/{saving_date}.txt", 'r') as file:
-        # with open(f"daily_urls/2024-07-03.txt", 'r') as file:
-            auction_urls = file.readlines()
-        
-        chunk_size = 100
-        for i in range(0, len(auction_urls), chunk_size):
-            chunk = auction_urls[i:i+chunk_size]
-            auction_data = self.scrape_auction_details(chunk)
+        try:
+            with open(f"daily_urls/{saving_date}.txt", 'r') as file:
+            # with open(f"daily_urls/2024-07-03.txt", 'r') as file:
+                auction_urls = file.readlines()
             
-            with open (f"daily_auctions/{saving_date}_chunk{i+1}_to_{i+chunk_size}c.json", 'w') as file:
-                json.dump(auction_data, file, indent=4)
+            chunk_size = 100
+            for i in range(0, len(auction_urls), chunk_size):
+                chunk = auction_urls[i:i+chunk_size]
+                auction_data = self.scrape_auction_details(chunk)
+                
+                with open (f"daily_auctions/{saving_date}_chunk{i+1}_to_{i+chunk_size}c.json", 'w') as file:
+                    json.dump(auction_data, file, indent=4)
+        except FileNotFoundError:
+            print('No new auctions to scrape')
 
     def teardown(self):
         self.driver.quit()
@@ -428,6 +430,6 @@ class CarScraper:
 scraper = CarScraper("https://carsandbids.com/")
 
 # scraper.get_past_auctions_urls()
-# scraper.update_past_auction_urls()
+scraper.update_past_auction_urls()
 scraper.daily_scraper()
 scraper.teardown()
